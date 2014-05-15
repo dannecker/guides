@@ -1,0 +1,175 @@
+---
+title: "Internationalization"
+section: customization
+---
+
+This guide covers how Colibri uses Rails' internationalization features, and how
+you can leverage and extend these features in your Colibri contributions and
+extensions.
+
+## How Colibri i18n works
+
+Colibri uses the standard Rails approach to internationalization so we suggest
+take some time to review the [official Rails i18n
+guide](http://guides.rubyonrails.org/i18n.html) and the
+[rails-i18n.org wiki](http://rails-i18n.org/wiki) to help you get started.
+
+### The colibri_i18n project
+
+Colibri now stores all of the translation information in a separate GitHub project
+known as [colibri_i18n](https://github.com/colibri/colibri_i18n). This is a stand
+alone project with a large number of volunteer committers who maintain the
+locale files. This is basically the same approach followed by the Rails project
+which keeps their localizations in
+[rails-i18n](https://github.com/svenfuchs/rails-i18n).
+
+The project is actually a Colibri extension. This extension contains translations and
+uses the [globalize3 gem](https://github.com/svenfuchs/globalize3) to provide
+translations for model records.
+
+!!!
+You will need to install the [colibri_i18n](https://github.com/colibri/colibri_i18n)
+gem if you want to use any of the community supplied translations of Colibri.
+!!!
+
+### Translation Files
+
+Each language is stored in a YAML file located in `config/locales`. Each YAML
+file contains one top level key which is the language code for the translations
+contained within that file.  The following is a snippet showing the basic layout
+of a locale file:
+
+```yaml
+pt-BR:
+  colibri:
+    say_no: "Não"
+    say_yes: "Sim"
+```
+
+***
+All translations for Colibri are "namespaced" within the `colibri` key so that they
+don't conflict with translations from other parts of the parent application.
+***
+
+#### Localization Files
+
+Colibri maintains its localization information in a YAML file using a naming
+convention similar to that of the Rails project.  Each of the localization
+filenames contains a prefix representing the language code of the locale. For
+example, the Russian translation is contained in `config/locales/ru.yml`.
+
+***
+Colibri has over 43 locale files and counting.  See the [GitHub
+Repository](https://github.com/colibri/colibri_i18n/tree/master/config/locales) for a
+complete list.
+***
+
+#### Required Files
+
+Each locale that you wish to support will require both a Rails and Colibri
+translation.  The required Colibri translation files are available automatically
+when you install the `colibri_i18n` gem.
+
+You don't need to copy any files from `colibri_i18n` or `rails-i18n` for their
+translations to be available within your application. They are made available
+automatically, because both `colibri_i18n` and `rails-i18n` are railties.
+
+### Translating Views
+
+When reviewing the source of any view in Colibri you'll notice that all text is
+rendered by passing a string to a helper method similar to:
+
+```erb
+<%%= Colibri.t(:price) %>
+```
+
+The *Colibri.t()* helper method looks up the currently configured locale and retrieves
+the translated value from the relevant locale YAML file. Assuming a default
+locale, this translation would be fetched from the en translations collated from
+the application, `colibri_i18n` and `rails-i18n`. Its relative key within those
+translation files would need to be this:
+
+```yaml
+en:
+  colibri:
+    price: Price
+```
+
+### The Default Locale
+
+Since Colibri is basically a Rails application it has the same default locale as
+any Rails application.  The default locale is `en` which use the English
+language.  We can verify this in the rails console
+
+```ruby
+>> I18n.locale
+=> :en
+```
+
+You can also see in the console how the default locale values are translated
+into English
+
+```ruby
+>> Colibri.t(:action)
+=> Action
+```
+
+## Deploying the Translations
+
+The `colibri_i18n` gem is configured in the same manner as any Rubygem in a Rails
+application.  Simply add it to the `Gemfile.` using the git url.
+
+```ruby
+gem 'colibri_i18n', :github => 'colibri/colibri_i18n'
+```
+
+### Setting the Default Locale
+
+The default locale for Rails, and therefore Colibri, is `en`. This can be changed by setting
+`config.i18n.default_locale` in `config/application.rb`. This setting is ignored
+unless the relevant translation file are within `#{Rails.root}/config/locales`
+or the `colibri_i18n` gem.
+
+### Setting the Default Currency
+
+***
+This functionality was new in Colibri 1.2. Please refer to the appropriate
+guide if you are using an older version.
+***
+
+In earlier versions of Colibri, we used `number_to_currency` to display prices for
+products. This caused a problem when somebody selected a different I18n locale,
+as the prices would be displayed in their currency: 20 Japanese Yen, rather than
+20 American Dollars, for instance.
+
+To fix this problem, we're now parsing the prices through the Money gem which
+will display prices consistently across all I18n locales. To now change the
+currency for your site, go to Admin, then Configuration, then General Settings.
+Changing the currency will only change the currency symbol across all prices of
+your store.
+
+There are three configuration options for currency:
+
+* `Colibri::Config[:currency]`: 3-letter currency code representing the current currency.
+* `Colibri::Config[:currency_symbol_position]`: Whether to include the symbol before or after the monetary amount.
+* `Colibri::Config[:display_currency]`: Whether or not to display the currency with prices.
+
+## Creating and Modifying Locales
+
+While we have used [LocaleApp](http://localeapp.com) in the past to manage the translations for the colibri_i18n project, Localeapp does not have support for different branches within the same project. As such, please submit Pull Requests or issues directly to https://github.com/colibri/colibri_i18n for missing translations.
+
+## Localizing Extensions
+
+Colibri extensions can contain their own `config/locales` directory where
+developers can include YAML files for each language they wish to support.
+
+We strongly urge all extension developers to ensure all customer facing text is
+rendered via the `Colibri.t()` helper method even if they only include a single default
+language locale file (as other users can simply include the required YAML file
+and translations in their site extension).
+
+***
+Since Colibri extensions are equivalent to Rails Engines they can provide
+localization information automatically (just like a standalone Rails
+application.)
+***
